@@ -16,12 +16,13 @@ public class PlayfabManager : Singleton<PlayfabManager>
             Please change the titleId below to your own titleId from PlayFab Game Manager.
             If you have already set the value in the Editor Extensions, this can be skipped.
             */
-            PlayFabSettings.staticSettings.TitleId = "42";
+            PlayFabSettings.staticSettings.TitleId = "9106F";
+            PlayFabSettings.staticSettings.DeveloperSecretKey = "MY4XI7NCDOCOG9A68P1C1RUXJE7EUW83HU69SIHOY535T4QJPY";
         }
 
-        var request = new LoginWithCustomIDRequest { CustomId = "GettingStartedGuide", CreateAccount = true };
+        var request = new LoginWithCustomIDRequest { CustomId = SystemInfo.deviceUniqueIdentifier, CreateAccount = true };
         PlayFabClientAPI.LoginWithCustomID(request, OnLoginSuccess, OnError);
-        
+
     }
 
     private void OnLoginSuccess(LoginResult result)
@@ -44,10 +45,7 @@ public class PlayfabManager : Singleton<PlayfabManager>
         {
             Statistics = new List<StatisticUpdate>
             {
-                new StatisticUpdate{
-                    StatisticName = "jump2d",
-                    Value = score
-                }
+                new StatisticUpdate { StatisticName = "jump2d",  Value = score  }
             }
         };
 
@@ -62,13 +60,18 @@ public class PlayfabManager : Singleton<PlayfabManager>
 
     public void GetLeaderboard()
     {
+        var requestName = new UpdateUserTitleDisplayNameRequest
+        {
+            DisplayName = "Name",
+        };
+        PlayFabClientAPI.UpdateUserTitleDisplayName(requestName, (x) => { }, OnError);
+
         var request = new GetLeaderboardRequest
         {
             StatisticName = "jump2d",
             StartPosition = 0,
             MaxResultsCount = 10
         };
-
         PlayFabClientAPI.GetLeaderboard(request, OnLeaderboardGet, OnError);
     }
 
