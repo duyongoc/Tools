@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using PlayFab;
@@ -7,8 +8,11 @@ using UnityEngine;
 public class PlayfabManager : Singleton<PlayfabManager>
 {
 
+    public string localPlayFabId = "NotSet";
 
-    public void Start()
+
+    #region UNITY
+    private void Start()
     {
         if (string.IsNullOrEmpty(PlayFabSettings.staticSettings.TitleId))
         {
@@ -17,29 +21,81 @@ public class PlayfabManager : Singleton<PlayfabManager>
             If you have already set the value in the Editor Extensions, this can be skipped.
             */
             PlayFabSettings.staticSettings.TitleId = "9106F";
-            PlayFabSettings.staticSettings.DeveloperSecretKey = "MY4XI7NCDOCOG9A68P1C1RUXJE7EUW83HU69SIHOY535T4QJPY";
+            // PlayFabSettings.staticSettings.DeveloperSecretKey = "MY4XI7NCDOCOG9A68P1C1RUXJE7EUW83HU69SIHOY535T4QJPY";
         }
 
+        RequestLogin();
+    }
+
+    // private void Update()
+    // {
+    // }
+    #endregion
+
+
+    private void RequestLogin()
+    {
         var request = new LoginWithCustomIDRequest { CustomId = SystemInfo.deviceUniqueIdentifier, CreateAccount = true };
-        PlayFabClientAPI.LoginWithCustomID(request, OnLoginSuccess, OnError);
-
+        PlayFabClientAPI.LoginWithCustomID(request,
+            result =>
+            {
+                GetLeaderboard();
+                GetAccountInfo();
+            },
+            error => Debug.Log(error.GenerateErrorReport()));
     }
 
-    private void OnLoginSuccess(LoginResult result)
+    private void GetAccountInfo()
     {
-        Debug.Log("Congratulations, you made your first successful API call!");
-        GetLeaderboard();
+        GetAccountInfoRequest request = new GetAccountInfoRequest();
+        PlayFabClientAPI.GetAccountInfo(request,
+            result =>
+            {
+                localPlayFabId = result.AccountInfo.PlayFabId;
+            },
+            error => Debug.Log(error.GenerateErrorReport()));
     }
 
-    private void OnError(PlayFabError error)
+    public void GetPlayerProfile()
     {
-        Debug.LogWarning("Something went wrong with your first API call.  :(");
-        Debug.LogError("Here's some debug information:");
-        Debug.LogError(error.GenerateErrorReport());
+        PlayFabClientAPI.GetPlayerProfile(new GetPlayerProfileRequest()
+        {
+            PlayFabId = localPlayFabId,
+            ProfileConstraints = new PlayerProfileViewConstraints()
+            {
+                ShowDisplayName = true
+            }
+        },
+        result => Debug.Log("The player's DisplayName profile data is: " + result.PlayerProfile),
+        error => Debug.LogError(error.GenerateErrorReport()));
     }
 
 
-    public void SendLeaderboard(int score)
+    public void GetDisplayName(Action<string> cb_success = null)
+    {
+        PlayFabClientAPI.GetPlayerProfile(new GetPlayerProfileRequest()
+        {
+            PlayFabId = localPlayFabId,
+            ProfileConstraints = new PlayerProfileViewConstraints()
+            {
+                ShowDisplayName = true
+            }
+        },
+        result => cb_success?.Invoke(result.PlayerProfile.DisplayName),
+        error => Debug.LogError(error.GenerateErrorReport()));
+    }
+
+
+    public void SetDisplayName(string name)
+    {
+        var requestName = new UpdateUserTitleDisplayNameRequest { DisplayName = name, };
+        PlayFabClientAPI.UpdateUserTitleDisplayName(requestName,
+            result => { },
+            error => Debug.LogError(error.GenerateErrorReport()));
+    }
+
+
+    public void SendLeaderboard(int score, Action cb_success = null)
     {
         var request = new UpdatePlayerStatisticsRequest
         {
@@ -49,41 +105,28 @@ public class PlayfabManager : Singleton<PlayfabManager>
             }
         };
 
-        PlayFabClientAPI.UpdatePlayerStatistics(request, OnLeaderboardUpdate, OnError);
-    }
-
-    private void OnLeaderboardUpdate(UpdatePlayerStatisticsResult result)
-    {
-        Debug.Log("successful leaderboard sent");
+        PlayFabClientAPI.UpdatePlayerStatistics(request,
+            result => { cb_success?.Invoke(); },
+            error => Debug.LogError(error.GenerateErrorReport()));
     }
 
 
     public void GetLeaderboard()
     {
-        var requestName = new UpdateUserTitleDisplayNameRequest
-        {
-            DisplayName = "Name",
-        };
-        PlayFabClientAPI.UpdateUserTitleDisplayName(requestName, (x) => { }, OnError);
-
         var request = new GetLeaderboardRequest
         {
             StatisticName = "jump2d",
             StartPosition = 0,
             MaxResultsCount = 10
         };
-        PlayFabClientAPI.GetLeaderboard(request, OnLeaderboardGet, OnError);
+
+        PlayFabClientAPI.GetLeaderboard(request,
+            result =>
+            {
+                result.Leaderboard.ForEach(x => { Debug.Log($"x position{x.Position} {x.PlayFabId} {x.StatValue}"); });
+            },
+            error => Debug.LogError(error.GenerateErrorReport()));
     }
-
-
-    private void OnLeaderboardGet(GetLeaderboardResult result)
-    {
-        result.Leaderboard.ForEach(x =>
-        {
-            Debug.Log($"x position{x.Position} {x.PlayFabId} {x.StatValue}");
-        });
-    }
-
 
 
 
