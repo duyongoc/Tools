@@ -45,7 +45,7 @@ public class LeaderboardUI : MonoBehaviour
         PlayfabManager.Instance.GetDisplayName((name) =>
         {
             print("boom " + name);
-            txtYourScore.text = $"Your name - {name}: {ScoreManager.Instance.CurrentScore}";
+            txtYourScore.text = $"Your name - {name}: {ScoreMgr.Instance.CurrentScore}";
         });
     }
 
@@ -89,7 +89,7 @@ public class LeaderboardUI : MonoBehaviour
         }
 
         ShowTextLoading();
-        var currentScore = ScoreManager.Instance.CurrentScore;
+        var currentScore = ScoreMgr.Instance.CurrentScore;
 
         PlayfabManager.Instance.SetDisplayName(inputName.text);
         PlayfabManager.Instance.SendLeaderboard(currentScore, () =>
